@@ -116,7 +116,7 @@ void symmetricCompletion(Mat& src, vector<Segment>& edges, vector<Rec>& rects){
 	vector<Segment> hseg,vseg;
 	vector<Segment> merged_h,merged_v;
 	double similarityThresh = 0.6;
-	vector<Segment> symmetryed_h,symmetryed_v;
+	vector<Segment> symmetryed,symmetryed_h,symmetryed_v;
 	for(int i=0;i<edges.size();i++){
 		if(abs(edges[i].startp.x == edges[i].endp.x) && abs(edges[i].startp.y != edges[i].endp.y))//vertical
 			vseg.push_back(edges[i]);
@@ -153,7 +153,6 @@ void symmetricCompletion(Mat& src, vector<Segment>& edges, vector<Rec>& rects){
 			}
 		}*/
 
-
 	/*for(int i=0;i<hseg.size()-1;i++)
 		for(int j=i+1;j<hseg.size();j++)
 			for(int k=0;k<vseg.size()-1;k++)
@@ -164,41 +163,116 @@ void symmetricCompletion(Mat& src, vector<Segment>& edges, vector<Rec>& rects){
 					}
 				}*/
 	
-
-
+	vector<SegPair> hpairs,vpairs,pairs;
+	vector<Segment> nopairs_h,nopairs_v,nopairs;
+	SegPair pair;
 	int symmetry_axis = src.cols/2;
 	double thresh_symmetry = 10;
+	//symmetryed_h = hseg; symmetryed_v = vseg;
 
-	for(int i=0;i<hseg.size();i++){
+	for(int i=0;i<hseg.size();){
 		Segment sym_i = findSymmetrySegment(hseg[i],hseg,symmetry_axis,thresh_symmetry);
-		if(sym_i.startp.x==0 && sym_i.startp.y==0 && sym_i.endp.x==0 && sym_i.endp.y==0)
-			symmetryed_h.push_back(calcSymmetrySegment(hseg[i],symmetry_axis));
-		else{
-			symmetryed_h.push_back(clc_ORset_SymmetrySegment(hseg[i],sym_i,symmetry_axis));
+		if(sym_i.startp.x==0 && sym_i.startp.y==0 && sym_i.endp.x==0 && sym_i.endp.y==0){
+			//symmetryed_h.push_back(calcSymmetrySegment(hseg[i],symmetry_axis));
+			nopairs_h.push_back(hseg[i]);
+			delete_SegVector(hseg,hseg[i]);
 		}
+		else{
+			/*delete_SegVector(symmetryed_h,sym_i);
+			delete_SegVector(symmetryed_h,hseg[i]);
+			symmetryed_h.push_back(clc_ORset_SymmetrySegment(hseg[i],sym_i,symmetry_axis));
+			if(sym_i != hseg[i]){
+				symmetryed_h.push_back(clc_ORset_SymmetrySegment(sym_i,hseg[i],symmetry_axis));*/
+			if(sym_i == hseg[i]){
+				nopairs_h.push_back(clc_ORset_SymmetrySegment(sym_i,hseg[i],symmetry_axis));
+				delete_SegVector(hseg,hseg[i]);
+			}
+			else{
+				pair.s1 = sym_i;
+				pair.s2 = hseg[i];
+				delete_SegVector(hseg,sym_i);
+				delete_SegVector(hseg,hseg[i]);
+				hpairs.push_back(pair);
+			}
+
+		}
+	}
+	//}
+
+	for(int i=0;i<vseg.size();){
+		Segment sym_i = findSymmetrySegment(vseg[i],vseg,symmetry_axis,thresh_symmetry);
+		if(sym_i.startp.x==0 && sym_i.startp.y==0 && sym_i.endp.x==0 && sym_i.endp.y==0){
+			//symmetryed_v.push_back(calcSymmetrySegment(vseg[i],symmetry_axis));
+			nopairs_v.push_back(vseg[i]);
+			delete_SegVector(vseg,vseg[i]);
+		}
+		else{
+			/*delete_SegVector(symmetryed_v,sym_i);
+			delete_SegVector(symmetryed_v,vseg[i]);
+			symmetryed_v.push_back(clc_ORset_SymmetrySegment(vseg[i],sym_i,symmetry_axis));
+			if(sym_i != vseg[i]){
+				symmetryed_v.push_back(clc_ORset_SymmetrySegment(sym_i,vseg[i],symmetry_axis));*/
+			if(sym_i == vseg[i]){
+				nopairs_v.push_back(clc_ORset_SymmetrySegment(sym_i,vseg[i],symmetry_axis));
+				delete_SegVector(vseg,vseg[i]);
+			}
+			else{
+				pair.s1 = sym_i;
+				pair.s2 = vseg[i];
+				delete_SegVector(vseg,sym_i);
+				delete_SegVector(vseg,vseg[i]);
+				vpairs.push_back(pair);
+			}
+			
+		}
+				
+	}
+	//}
+
+	pairs.insert(pairs.end(),hpairs.begin(),hpairs.end());
+	pairs.insert(pairs.end(),vpairs.begin(),vpairs.end());
+
+	nopairs.insert(nopairs.end(),nopairs_h.begin(),nopairs_h.end());
+	nopairs.insert(nopairs.end(),nopairs_v.begin(),nopairs_v.end());
+
+	for(int i = 0;i<pairs.size();i++){
+		Segment s1 = clc_ORset_SymmetrySegment(pairs[i].s1,pairs[i].s2,symmetry_axis);
+		Segment s2 = clc_ORset_SymmetrySegment(pairs[i].s2,pairs[i].s1,symmetry_axis);
+		symmetryed.push_back(s1);
+		symmetryed.push_back(s2);
+	}
+	for(int i = 0;i<nopairs.size();i++){
+		symmetryed.push_back(nopairs[i]);
 	}
 
-	for(int i=0;i<vseg.size();i++){
-		Segment sym_i = findSymmetrySegment(vseg[i],vseg,symmetry_axis,thresh_symmetry);
-		if(sym_i.startp.x==0 && sym_i.startp.y==0 && sym_i.endp.x==0 && sym_i.endp.y==0)
-			symmetryed_v.push_back(calcSymmetrySegment(vseg[i],symmetry_axis));
-		else{
-			symmetryed_v.push_back(clc_ORset_SymmetrySegment(vseg[i],sym_i,symmetry_axis));
-		}
-	}
 	//edges = symmetryed;
 	/*merged_h.insert(merged_h.end(),merged_v.begin(),merged_v.end()); 
 	edges = merged_h;*/
 
-	for(int i=0;i<symmetryed_h.size()-1;i++)
-		for(int j=i+1;j<symmetryed_h.size();j++)
-			for(int k=0;k<symmetryed_v.size()-1;k++)
-				for(int l=k+1;l<symmetryed_v.size();l++){
-					Rec rec = findRectangle(symmetryed_h[i],symmetryed_v[k],symmetryed_h[j],symmetryed_v[l]);
-					if(rec.center != Point(0,0)){
-						rects.push_back(rec);
-					}
-				}
+	vector<Segment> l_seg_h, r_seg_h,l_seg_v, r_seg_v;
+	
+	/*symmetryed.insert(symmetryed.end(),symmetryed_h.begin(),symmetryed_h.end());
+	symmetryed.insert(symmetryed.end(),symmetryed_v.begin(),symmetryed_v.end());*/
+	edges = symmetryed;
+
+	/*classifySegsToLR(symmetryed_h, symmetry_axis, l_seg_h, r_seg_h);
+	classifySegsToLR(symmetryed_v, symmetry_axis, l_seg_v, r_seg_v);*/
+
+	classifySegsToHV(symmetryed, symmetryed_h,symmetryed_v);
+
+	rects = findRectsFromHVSegs(symmetryed_h,symmetryed_v);
+	
+	//determine whether the nopairs segment should be added
+	vector<Rec> potentialRecs = findPotentialRectsFromNoPairSegs(symmetry_axis,nopairs_h,nopairs_v,symmetryed_h,symmetryed_v);
+ 	rects.insert(rects.end(),potentialRecs.begin(),potentialRecs.end());
+	
+	vector<Rec> tempRec = rects;
+	for(int i=0;i<tempRec.size();i++){
+		Rec rec = findSymmetryRecFromRects(tempRec[i],tempRec,symmetry_axis,10);
+		if(rec.center == Point(0,0))
+			rects.push_back(calcSymmetryRectangle(tempRec[i],symmetry_axis));
+	}
+
 
 	//find the symmtric axis: originally set it as the middle of image
 	temp1 = src(Range(0,src.rows),Range(0,src.cols/2));

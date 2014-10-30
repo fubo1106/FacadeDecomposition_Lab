@@ -56,6 +56,26 @@ double _max(double d1,double d2,double d3,double d4){
 	
 }
 
+void delete_SegVector(vector<Segment>& segs, Segment& target){
+	vector<Segment>temp;
+	for(int i=0;i<segs.size();i++){
+		if(target != segs[i])
+			temp.push_back(segs[i]);
+	}
+	segs = temp;
+	/*if(segs.size() == temp.size())
+		cout<<"no same segment"<<endl;*/
+}
+
+Point calcCenterPoint(vector<Point>& points){
+	int sum_x = 0,sum_y = 0;
+	for(int i=0;i<points.size();i++){
+		sum_x += points[i].x;
+		sum_y += points[i].y;
+	}
+	return Point(sum_x/points.size(),sum_y/points.size());
+}
+
 Mat getTsrMatrix(vector<Point>& points1,vector<Point>& points2){
 	//估计两组点集之间的变换矩阵
 	// 转换成解方程 A * X = B
@@ -553,26 +573,6 @@ Vec2i findNearestSeg(Point startp,Segment s1){
 		return Vec2i(0,1);
 }
 
-Segment findSymmetrySegment(Segment& input,vector<Segment>& sets,int symmetry_axis,int thresh){
-	for(int i=0;i<sets.size();i++){
-		if(sets[i].startp.x == sets[i].endp.x){//vertical
-			if( (distSegment2Segment(sets[i],Segment(Point(2*symmetry_axis-input.startp.x,input.startp.y),
-													 Point(2*symmetry_axis-input.endp.x,input.endp.y)))[0]<thresh))
-				/*&& abs(sets[i][0]-(2*symmetry_axis-input[0]) < thresh
-				)*/
-				return sets[i];
-		}
-		if(sets[i].startp.y == sets[i].endp.y){//horizontal
-			if( (distSegment2Segment(sets[i],Segment(Point(2*symmetry_axis-input.startp.x,input.startp.y),
-													 Point(2*symmetry_axis-input.endp.x,input.endp.y)))[0]<thresh))
-				/*&& abs(sets[i][1]-input[1] < thresh)
-				)*/
-				return sets[i];
-		}
-	}
-	return Segment(Point(0,0),Point(0,0));
-}
-
 Point findIntersectionSeg2Seg(Segment& s1,Segment& s2){
 	/*find the intersection point of 2 segments using a thresh
 		if there is no return point(0,0)*/
@@ -614,17 +614,74 @@ Segment calcSymmetrySegment(Segment& input,int symmetry_axis){
 }
 
 Segment clc_ORset_SymmetrySegment(Segment& input,Segment& symSeg,int symmetry_axis){
+
 	if(symSeg.startp.x == symSeg.endp.x)//vertical
 		return Segment( Point(symSeg.startp.x,_min(input.startp.y,input.endp.y,symSeg.startp.y,symSeg.endp.y)),
 						Point(symSeg.endp.x,_max(input.startp.y,input.endp.y,symSeg.startp.y,symSeg.endp.y)));
-	if(symSeg.startp.y == symSeg.endp.y)//horizontal
-		return Segment( Point(_min(2*symmetry_axis-input.startp.x,2*symmetry_axis-input.endp.x,symSeg.startp.x,symSeg.endp.x),symSeg.startp.y),
-						Point(_max(2*symmetry_axis-input.startp.x,2*symmetry_axis-input.endp.x,symSeg.startp.x,symSeg.endp.x),symSeg.endp.y));
+	if(symSeg.startp.y == symSeg.endp.y){//horizontal
+		if( (input.startp.x<=symmetry_axis && input.endp.x >= symmetry_axis) || (input.startp.x >= symmetry_axis && input.endp.x <= symmetry_axis)){
+			return Segment( Point(_min(input.startp.x,input.endp.x,2*symmetry_axis-input.startp.x,2*symmetry_axis-input.endp.x),symSeg.startp.y),
+						    Point(_max(input.startp.x,input.endp.x,2*symmetry_axis-input.startp.x,2*symmetry_axis-input.endp.x),symSeg.endp.y));
+		}
+		else{
+			return Segment( Point(_min(2*symmetry_axis-input.startp.x,2*symmetry_axis-input.endp.x,symSeg.startp.x,symSeg.endp.x),symSeg.startp.y),
+						    Point(_max(2*symmetry_axis-input.startp.x,2*symmetry_axis-input.endp.x,symSeg.startp.x,symSeg.endp.x),symSeg.endp.y));
+		}
+	}
+
 }
 
 double calcAngleOf2Vec(Point& vec1,Point& vec2){
 	double cos_theta = (vec1.x * vec2.x + vec1.y * vec2.y) / (distance1(Point(0,0),vec1) * distance1(Point(0,0),vec2));
 	return cos_theta;
+}
+
+Segment findSymmetrySegment(Segment& input,vector<Segment>& sets,int symmetry_axis,int thresh){
+	for(int i=0;i<sets.size();i++){
+		if(sets[i].startp.x == sets[i].endp.x){//vertical
+			if( (distSegment2Segment(sets[i],Segment(Point(2*symmetry_axis-input.startp.x,input.startp.y),
+													 Point(2*symmetry_axis-input.endp.x,input.endp.y)))[0]<thresh))
+				/*&& abs(sets[i][0]-(2*symmetry_axis-input[0]) < thresh
+				)*/
+				return sets[i];
+		}
+		if(sets[i].startp.y == sets[i].endp.y){//horizontal
+			if( (distSegment2Segment(sets[i],Segment(Point(2*symmetry_axis-input.startp.x,input.startp.y),
+													 Point(2*symmetry_axis-input.endp.x,input.endp.y)))[0]<thresh))
+				/*&& abs(sets[i][1]-input[1] < thresh)
+				)*/
+				return sets[i];
+		}
+	}
+	return Segment(Point(0,0),Point(0,0));
+}
+
+Rec calcSymmetryRectangle(Rec& rect,int symmetry_axis){
+	Segment ss1,ss2,ss3,ss4;
+	Rec rec;
+	ss1 = calcSymmetrySegment(rect.s1,symmetry_axis);
+	ss2 = calcSymmetrySegment(rect.s2,symmetry_axis);
+	ss3 = calcSymmetrySegment(rect.s3,symmetry_axis);
+	ss4 = calcSymmetrySegment(rect.s4,symmetry_axis);
+	
+	Point cent = Point(2*symmetry_axis-rect.center.x,rect.center.y);
+	rec.s1 = ss1; rec.s2 = ss2; rec.s3 = ss3; rec.s4 = ss4;
+	rec.center = cent;
+
+	return rec;
+
+}
+
+Rec findSymmetryRecFromRects(Rec& rect,vector<Rec>& rects,int symmetry_axis,int thresh){
+	Rec rec;
+	for(int i=0;i<rects.size();i++){
+		if( abs(2*symmetry_axis-rect.center.x-rects[i].center.x) <= thresh && abs(rect.center.y-rects[i].center.y))
+			return rects[i];
+	}
+	Point cente = Point(0,0);
+	rec.center = cente;
+	return rec;
+	
 }
 
 void reorganize(vector<Segment>* segments){
@@ -720,15 +777,6 @@ void reorganize(vector<Segment>* segments){
 	return;
 }
 
-Point calcCenterPoint(vector<Point>& points){
-	int sum_x = 0,sum_y = 0;
-	for(int i=0;i<points.size();i++){
-		sum_x += points[i].x;
-		sum_y += points[i].y;
-	}
-	return Point(sum_x/points.size(),sum_y/points.size());
-}
-
 boolean isSameRec(Rec& rec1, Rec& rec2){
 	Segment s11 = rec1.s1;
 	Segment s12 = rec1.s2;
@@ -761,7 +809,7 @@ boolean existSameRect(Rec& rect,vector<Rec>& rects){
 	return false;
 }
 
-vector<int> findRelatedLines(Segment line,vector<Segment>lineSet){
+vector<int> findRelatedLines(Segment& line,vector<Segment>& lineSet){
 	vector<int> a;
 	for(int i=0;i<lineSet.size();i++){
 		if(isSameLine(line,lineSet[i]) && !(lineSet[i] == line) )
@@ -770,135 +818,28 @@ vector<int> findRelatedLines(Segment line,vector<Segment>lineSet){
 	return a;
 }
 
-//void segmentsTolines(vector<Segment>& segments, vector<Segment>* lines){
-//	/*合并线段segments*/
-//	vector<Line>lineSet;
-//	int num = segments.size();
-//
-//	/*Vec4i pp(797,722,798,670);
-//	Vec4i pp1(798,758,798,728);
-//	vector<Vec4i>tempLineSet;
-//	boolean b = isSameLine(pp,pp1);
-//	vector<int>finded = findRelatedLines(pp,segments);
-//	for(int nn=0;nn<finded.size();nn++)
-//		tempLineSet.push_back(segments[finded[nn]]);
-//	Vec4i ss = getDistictSegment(tempLineSet);*/
-//
-//	//Vec4i s = getDistictSegment(lineSet);
-//#if 0
-//	/*use num queues to do the BFS*/
-//	queue<Vec4i>* pQueue[MAX_LINES];
-//	//initialization each queue contains one element
-//	if(MAX_LINES < num){
-//		cout<<"too many lines: exceed "<<MAX_LINES<<endl;
-//		exit(0);
-//	}
-//	else{
-//		for(int i=0;i<num;i++){
-//			pQueue[i] = new queue<Vec4i>;
-//			pQueue[i]->push(segments[i]);
-//		}
-//	}
-//
-//	int VISITED = 1;
-//	int mark[MAX_LINES];
-//
-//	for(int i=0;i<num;i++){
-//		mark[i] = -1;//initialization marks
-//	}
-//
-//	for(int i=0;i<num;i++){
-//		while(!pQueue[i]->empty()){
-//			Vec4i p = pQueue[i]->front();
-//			pQueue[i]->pop();
-//
-//			vector<int> relatedLines = findRelatedLines(p,segments);
-//
-//			for(int j=0;j<relatedLines.size();j++){
-//				if(!mark[relatedLines[j]]){
-//					pQueue[i]->push(segments[relatedLines[j]]);
-//					pQueue[relatedLines[j]]->pop();
-//					mark[relatedLines[j]] = VISITED;
-//				}
-//			}
-//		}
-//	}
-//#else 
-//	queue<Segment> pQueue;
-//	vector<Segment> classSegments;
-//	
-//	if(MAX_LINES < num){
-//		cout<<"too many lines: exceed "<<MAX_LINES<<endl;
-//		exit(0);
-//	}
-//	else{
-//		int mark[MAX_LINES];
-//
-//		for(int i=0;i<num;i++){
-//			mark[i] = -1;//initialization marks
-//		}
-//		for(int i=0;i<num;i++){
-//			if(mark[i] == -1){
-//				pQueue.push(segments[i]);
-//				classSegments.push_back(segments[i]);
-//
-//				while(!pQueue.empty()){
-//					Segment p = pQueue.front();
-//					pQueue.pop();
-//
-//					vector<int> relatedLines = findRelatedLines(p,segments);
-//
-//					for(int j=0;j<relatedLines.size();j++){
-//						if(mark[relatedLines[j]] == -1){
-//							pQueue.push(segments[relatedLines[j]]);
-//							classSegments.push_back(segments[relatedLines[j]]);
-//							mark[relatedLines[j]] = 1;
-//						}
-//					}
-//				}
-//				Vec4i s = getDistictSegment(classSegments);
-//				if(distance1(Point(s[0],s[1]),Point(s[2],s[3])) >= MIN_LENGTH * IMAGE_SCALE)
-//					lines->push_back(s);
-//				/*lines could be a class*/
-//				/*Mat orig;
-//				cv::cvtColor(dst,orig,CV_GRAY2BGR);
-//				for(int kk = 0;kk<classSegments.size();kk++){
-//					cout<<"segment:"<<segments[i]<<",it's set:"<<classSegments[kk]<<endl;
-//					cv::line(orig,Point(classSegments[kk][0],classSegments[kk][1]),Point(classSegments[kk][2],classSegments[kk][3]),Scalar(0,255,0),3,CV_AA);
-//				}
-//				cv::line(orig,Point(s[0],s[1]),Point(s[2],s[3]),Scalar(0,0,255),2,CV_AA);
-//				cv::namedWindow("big_line",0);
-//				cv::imshow("big_line",orig);
-//				cv::waitKey(0);*/
-//
-//				classSegments.clear();
-//			}
-//
-//		}
-//	}
-//#endif
-//	return;
-//	//q[0].push(segments[0]);
-//	//mark[0] = VISITED;
-//	//while(!q[0].empty()){
-//	//	Vec4i f= q[0].front();
-//	//	q[0].pop();
-//	//	vector<Vec4i>next = findNext(f);
-//	//	for(int i=0;i<next.size();i++){
-//	//		if(!VISITED) push(next[i]); VISITED;
-//	//	}
-//	//}
-//	//makeSet(segments,&lineSet);
-//	/*for(int i=0;i<lineSet.size()-1;i++){
-//		mergeSet(lineSet[1],lineSet[i+1]);
-//	}*/
-//	/*vector<Line>newSet; 
-//	int start = 0;
-//	int end = lineSet.size()-1;
-//	merge(lineSet,start,end);*/
-//	/*for(int i=0;i<segments.size();i++){
-//		line = segments[i];
-//		start = Point(line[0],line[1]);
-//		end = Point(line[2],line[3]);
-//	}*/
-//}
+void classifySegsToLR(vector<Segment>& sets,int symmetry_axis,vector<Segment>& l_seg,vector<Segment>& r_seg){
+	/*classify segments into left and right segments
+	 get the correspondence between 2 sets*/
+	for(int i=0;i<sets.size();i++){
+		if(sets[i].startp.x <= symmetry_axis && sets[i].endp.x <= symmetry_axis)
+			l_seg.push_back(sets[i]);
+		else if(sets[i].startp.x >= symmetry_axis && sets[i].endp.x >= symmetry_axis)
+			r_seg.push_back(sets[i]);
+		else{
+			l_seg.push_back(sets[i]);
+			r_seg.push_back(sets[i]);
+		}
+
+	}
+}
+
+void classifySegsToHV(vector<Segment>& sets,vector<Segment>& h_seg,vector<Segment>& v_seg){
+	
+	for(int i=0;i<sets.size();i++){
+		if(sets[i].startp.x == sets[i].endp.x)
+			v_seg.push_back(sets[i]);
+		if(sets[i].startp.y == sets[i].endp.y)
+			h_seg.push_back(sets[i]);
+	}
+}

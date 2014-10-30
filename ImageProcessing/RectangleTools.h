@@ -184,7 +184,7 @@ Rec findRectangle(Segment& s1,Segment& s2,Segment& s3,Segment& s4){
 		rect.center = Point(0,0);
 		return rect;
 	}
-	
+
 	Segment s11,s22,s33,s44;
 	vector<Point> points;
 	s11.startp = p01;s11.endp = p12;
@@ -202,6 +202,119 @@ Rec findRectangle(Segment& s1,Segment& s2,Segment& s3,Segment& s4){
 		return rect;
 	}
 
+}
+
+vector<Rec> findRectsFromHVSegs(vector<Segment>& segs1, vector<Segment>& segs2){
+	vector<Rec>rects;
+	for(int i=0;i<segs1.size()-1;i++)
+		for(int j=i+1;j<segs1.size();j++)
+			for(int k=0;k<segs2.size()-1;k++)
+				for(int l=k+1;l<segs2.size();l++){
+					Rec rec = findRectangle(segs1[i],segs2[k],segs1[j],segs2[l]);
+					if(rec.center != Point(0,0)){
+						rects.push_back(rec);
+					}
+				}
+				return rects;
+}
+
+vector<Rec> findPotentialRectsFromNoPairSegs(int symmetry_axis,vector<Segment>& nopairs_h,vector<Segment>& nopairs_v,
+											 vector<Segment>& symmetryed_h,vector<Segment>& symmetryed_v){
+	//从未配对的segs中找到可能生成的rect
+	vector<Rec> rects;
+
+	//1 nopair segment
+
+	//1 horizontal
+	int count =0;
+	for(int i=0;i<nopairs_h.size();i++){
+		Segment sym_h = calcSymmetrySegment(nopairs_h[i],symmetry_axis);
+		for(int j=0;j<symmetryed_h.size()-1;j++)
+			for(int k=j+1;k<symmetryed_v.size();k++){
+				Rec rec = findRectangle(nopairs_h[i],symmetryed_v[j],sym_h,symmetryed_v[k]);
+					if(rec.center != Point(0,0)){
+						rects.push_back(rec);
+						count++;
+					}
+			}
+	}
+	
+	//1 vertical
+	for(int i=0;i<nopairs_v.size();i++){
+		Segment sym_v = calcSymmetrySegment(nopairs_v[i],symmetry_axis);
+		for(int j=0;j<symmetryed_h.size()-1;j++)
+			for(int k=j+1;k<symmetryed_h.size();k++){
+				Rec rec = findRectangle(nopairs_v[i],symmetryed_h[j],sym_v,symmetryed_h[k]);
+					if(rec.center != Point(0,0)){
+						rects.push_back(rec);
+						count++;
+					}
+			}
+	}
+	
+	//2 nopair segment
+
+	//1 vertical and 1 horizontal
+	/*for(int i=0;i<nopairs_h.size();i++){
+		Segment sym_h = calcSymmetrySegment(nopairs_h[i],symmetry_axis);
+		for(int j=0;j<nopairs_v.size();j++){
+			Segment sym_v = calcSymmetrySegment(nopairs_v[j],symmetry_axis);
+			for(int k=0;k<symmetryed_h.size();k++)
+				for(int l=0;l<symmetryed_v.size();l++){
+					Rec rec = findRectangle(sym_h,sym_v,symmetryed_h[k],symmetryed_h[l]);
+					if(rec.center != Point(0,0)){
+						rects.push_back(rec);
+						count++;
+					}
+				}
+		}
+	}
+	cout<<count<<endl;*/
+	////2 vertical
+	//for(int i=0;i<nopairs_v.size()-1;i++){
+	//	Segment sym_v1 = calcSymmetrySegment(nopairs_v[i],symmetry_axis);
+	//	for(int j=i+1;j<nopairs_v.size();j++){
+	//		Segment sym_v2 = calcSymmetrySegment(nopairs_v[i],symmetry_axis);
+	//		for(int k=0;k<symmetryed_h.size();k++)
+	//			for(int l=0;l<symmetryed_h.size();l++){
+	//				Rec rec = findRectangle(sym_v1,symmetryed_h[k],sym_v2,symmetryed_h[l]);
+	//				if(rec.center != Point(0,0)){
+	//					rects.push_back(rec);
+	//				}
+	//			}
+	//	}
+	//}
+	////2 horizontal
+	//for(int i=0;i<nopairs_h.size()-1;i++){
+	//	Segment sym_h1 = calcSymmetrySegment(nopairs_h[i],symmetry_axis);
+	//	for(int j=i+1;j<nopairs_h.size();j++){
+	//		Segment sym_h2 = calcSymmetrySegment(nopairs_h[i],symmetry_axis);
+	//		for(int k=0;k<symmetryed_v.size();k++)
+	//			for(int l=0;l<symmetryed_v.size();l++){
+	//				Rec rec = findRectangle(sym_h1,symmetryed_v[k],sym_h2,symmetryed_v[l]);
+	//				if(rec.center != Point(0,0)){
+	//					rects.push_back(rec);
+	//				}
+	//			}
+	//	}
+	//}
+
+	//3 nopair segment
+
+	//4 nopair segment
+
+	//for(int i=0;i<nopairs_h.size()-1;i++)
+	//	for(int j=i+1;j<nopairs_h.size();j++)
+	//		for(int k=0;k<nopairs_v.size()-1;k++)
+	//			for(int l=k+1;l<nopairs_v.size();l++){
+	//				Rec rec = findRectangle(nopairs_h[i],nopairs_v[k],nopairs_h[j],nopairs_v[l]);
+	//				if(rec.center != Point(0,0)){
+	//					rects.push_back(rec);
+	//				}
+	//			}
+
+
+	return rects;
 }
 
 

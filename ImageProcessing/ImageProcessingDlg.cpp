@@ -809,7 +809,8 @@ void CImageProcessingDlg::doDecomposition(CString filename){
 	string name = filename.GetBuffer(0);
 	Mat src = imread(name, 1);
 	Mat background = Mat::zeros(src.rows,src.cols,CV_32FC3);
-	String path_hough="detected\\"+name+"_hough_showlines.jpg";
+	String path_rect="detected\\"+name+"_rects.jpg";
+	String path_seg ="detected\\"+name+"_segs.jpg";
 	if(src.empty())
 	{
 		cout << "can not open " << name << endl;
@@ -865,24 +866,43 @@ void CImageProcessingDlg::doDecomposition(CString filename){
 		 background = src.clone();
 	 }*/
 
-	cout<<"reduced line number:"<<nolapping_segs.size()<<endl;
-	Mat showImg = src.clone();
+	cout<<"reduced line number:"<<reult_seg.size()<<endl
+		<<"detected rectangle number:"<<rects.size()<<endl;
+
+	Mat detectRecs = background.clone();
 	for( size_t i = 0; i < rects.size(); i++ )
 	{
 		Rec l = rects[i];
-		drawRectangle(showImg,rects[i],Scalar(0,255,0),2);
+		drawRectangle(detectRecs,rects[i],Scalar(0,255,0),2);
 		/*Segment l = reult_seg[i];
-		line( showImg, l.startp, l.endp, Scalar(0,255,0), 1, CV_AA);
+		line(showImg, l.startp, l.endp, Scalar(0,255,0), 1, CV_AA);
 		line(showImg,Point(background.cols/2,0),Point(background.cols/2,background.rows),Scalar(0,0,255), 1, CV_AA);*/
  		/*namedWindow("facade",0);
  		imshow("facade",showImg);
-		cv::waitKey(0);*/
-		//showImg = background.clone();
+		cv::waitKey(0);
+		showImg = background.clone();*/
 	}
-	imwrite(path_hough,showImg);
-	//namedWindow("facade",0);
- //	imshow("facade",showImg);
-	//cv::waitKey(0);
+
+	Mat detectSegs = background.clone();
+	for( size_t i = 0; i < reult_seg.size(); i++ )
+	{
+		Segment l = reult_seg[i];
+		line(detectSegs, l.startp, l.endp, Scalar(0,255,0), 1, CV_AA);
+		line(detectSegs,Point(background.cols/2,0),Point(background.cols/2,background.rows),Scalar(0,0,255), 1, CV_AA);
+ 		/*namedWindow("facade",0);
+ 		imshow("facade",showImg);
+		cv::waitKey(0);
+		showImg = background.clone();*/
+	}
+	imwrite(path_seg,detectSegs);
+	imwrite(path_rect,detectRecs);
+
+	/*namedWindow("detectedSegs",0);
+	namedWindow("detectedRects",0);
+
+	imshow("detectedSegs",detectSegs);
+ 	imshow("detectedRects",detectRecs);
+	cv::waitKey(0);*/
 	/*cc=waitKey();
 	if(cc == 'a') thresh1 += 10;
 	if(cc == 'd') thresh1 -= 10;
